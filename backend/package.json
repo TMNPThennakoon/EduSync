@@ -1,0 +1,60 @@
+{
+  "name": "classroom-attendance-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Classroom Attendance & Gradebook System",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "migrate": "node src/database/migrate.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.17.1",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.12.2",
+    "bcryptjs": "^2.4.3",
+    "canvas": "^3.2.0",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "csv-parser": "^3.2.0",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.2",
+    "jspdf-autotable": "^5.0.2",
+    "mongodb": "^6.20.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^7.0.6",
+    "pdfkit": "^0.14.0",
+    "pg": "^8.11.3",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "uuid": "^13.0.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^6.3.3"
+  },
+  "keywords": [
+    "classroom",
+    "attendance",
+    "gradebook",
+    "education",
+    "api"
+  ],
+  "author": "Classroom Team",
+  "license": "MIT"
+}
