@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const { logUserAction, logError } = require('../utils/logger');
-// This part must be exactly like this 
+// Using Node.js built-in crypto.randomUUID() instead of uuid package to avoid ESM issues on Vercel
+// Updated: 2026-01-08 - Force fresh deploy
 const crypto = require('crypto');
 const uuidv4 = () => crypto.randomUUID();
 
