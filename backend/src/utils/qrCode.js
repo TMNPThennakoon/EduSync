@@ -13,10 +13,10 @@ const generateStudentQRData = (student) => {
     lastName: student.last_name,
     email: student.email
   };
-  
+
   // Encrypt the QR data with timestamp
   const encryptedData = encryptQR(studentData);
-  
+
   return {
     encrypted: encryptedData,
     version: '2.0' // Version 2.0 indicates encrypted QR codes
@@ -34,7 +34,7 @@ const generateQRCodeImage = async (student) => {
     // The encrypted data is now stored in qrData.encrypted
     // We encode just the encrypted string (not the whole JSON)
     const qrString = qrData.encrypted;
-    
+
     const qrCodeImage = await QRCode.toDataURL(qrString, {
       type: 'image/png',
       quality: 0.92,
@@ -46,7 +46,7 @@ const generateQRCodeImage = async (student) => {
       width: 300,
       errorCorrectionLevel: 'M'
     });
-    
+
     return qrCodeImage;
   } catch (error) {
     throw new Error(`Failed to generate QR code: ${error.message}`);
@@ -63,7 +63,7 @@ const generateQRCodeSVG = async (student) => {
     const qrData = generateStudentQRData(student);
     // Use the encrypted string directly
     const qrString = qrData.encrypted;
-    
+
     const qrCodeSVG = await QRCode.toString(qrString, {
       type: 'svg',
       margin: 1,
@@ -74,7 +74,7 @@ const generateQRCodeSVG = async (student) => {
       width: 300,
       errorCorrectionLevel: 'M'
     });
-    
+
     return qrCodeSVG;
   } catch (error) {
     throw new Error(`Failed to generate QR code SVG: ${error.message}`);
@@ -88,17 +88,17 @@ const generateQRCodeSVG = async (student) => {
  */
 const parseQRCodeData = (qrString) => {
   const { decryptQR, isValidEncryptedFormat } = require('./qrSecurity');
-  
+
   try {
     // Try to parse as JSON first (old format)
     try {
       const qrData = JSON.parse(qrString);
-      
+
       // If it's old format (has studentId directly)
       if (qrData.studentId && qrData.firstName && qrData.lastName) {
         return qrData;
       }
-      
+
       // If it's new format with encrypted field
       if (qrData.encrypted) {
         const decrypted = decryptQR(qrData.encrypted);
@@ -118,7 +118,7 @@ const parseQRCodeData = (qrString) => {
       }
       throw new Error('Invalid QR code format');
     }
-    
+
     throw new Error('Invalid QR code format');
   } catch (error) {
     throw new Error(`Invalid QR code data: ${error.message}`);
@@ -130,8 +130,8 @@ const parseQRCodeData = (qrString) => {
  * @returns {Promise<string>} Unique QR code ID
  */
 const generateQRCodeId = async () => {
-  const { v4: uuidv4 } = await import('uuid');
-  return uuidv4();
+  const crypto = require('crypto');
+  return crypto.randomUUID();
 };
 
 module.exports = {
