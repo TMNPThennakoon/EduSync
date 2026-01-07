@@ -196,39 +196,46 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Socket.io setup
+// Socket.io setup - Only for local development
 const http = require('http');
-const { Server } = require('socket.io');
-
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
-});
 
-// Attach io to app so it can be used in controllers
-app.set('io', io);
-
-// Socket.io Logic
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
-
-  // Join a room based on User ID
-  socket.on('join_room', (userId) => {
-    socket.join(String(userId));
-    console.log(`User ${userId} joined room ${userId}`);
+// Socket.IO is not supported on Vercel serverless
+// Only enable in development
+if (process.env.NODE_ENV !== 'production') {
+  const { Server } = require('socket.io');
+  const io = new Server(server, {
+    cors: {
+      origin: allowedOrigins,
+      methods: ['GET', 'POST'],
+      credentials: true
+    }
   });
 
+  // Attach io to app so it can be used in controllers
+  app.set('io', io);
 
+  // Socket.io Logic
+  io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
 
+    // Join a room based on User ID
+    socket.on('join_room', (userId) => {
+      socket.join(String(userId));
+      console.log(`User ${userId} joined room ${userId}`);
+    });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    socket.on('disconnect', () => {
+      console.log('User disconnected:', socket.id);
+    });
   });
-});
+} else {
+  // Production: Create a mock io object
+  app.set('io', {
+    emit: () => { }, // No-op function
+    to: () => ({ emit: () => { } })
+  });
+}
 
 // Start server
 server.listen(PORT, () => {
