@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { logUserAction, logError } = require('../utils/logger');
+// This part must be exactly like this
 const crypto = require('crypto');
 const uuidv4 = () => crypto.randomUUID();
 
