@@ -6,7 +6,7 @@ import { assignmentsAPI, classesAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-const CreateAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
+const CreateAssignmentModal = ({ isOpen, onClose, onSuccess, prefilledClass }) => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [classes, setClasses] = useState([]);
@@ -32,15 +32,15 @@ const CreateAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
   const watchDepartment = watch('department');
   const watchAssignmentType = watch('assignment_type');
 
-  // Set user's department as default and fetch classes
+  // Handle prefilled class data
   useEffect(() => {
-    if (user?.department && isOpen) {
+    if (prefilledClass && isOpen) {
+      setValue('department', prefilledClass.department || user?.department);
+      setValue('class_id', prefilledClass.id);
+    } else if (user?.department && isOpen) {
       setValue('department', user.department);
-      // Trigger fetch via watchDepartment effect or manual call if needed, 
-      // but watchDepartment effect handles it if setValue triggers change.
-      // However, initial render might need explicit call if watch doesn't fire immediately on mount with default.
     }
-  }, [user?.department, isOpen, setValue]);
+  }, [prefilledClass, user?.department, isOpen, setValue]);
 
   // Fetch classes when department changes or modal opens
   useEffect(() => {

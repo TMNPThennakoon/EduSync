@@ -15,7 +15,8 @@ import {
   XCircle,
   AlertCircle,
   Award,
-  RefreshCw // Add RefreshCw icon
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 import { classesAPI, attendanceAPI, assignmentsAPI, gradesAPI, usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,7 +24,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import LectureMaterialsSection from '../components/LectureMaterialsSection';
 import AnnouncementsSection from '../components/AnnouncementsSection';
 import StudentDetailsModal from '../components/StudentDetailsModal';
-import ExamGradesManager from '../components/ExamGradesManager'; // Import the new component
+import ExamGradesManager from '../components/ExamGradesManager';
+import CreateAssignmentModal from '../components/CreateAssignmentModal';
 
 const ClassDetail = () => {
   const { id } = useParams();
@@ -31,8 +33,9 @@ const ClassDetail = () => {
   const { user, isLecturer } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
-  const [showExamGradesModal, setShowExamGradesModal] = useState(false); // Add Modal State
-  const [isSyncing, setIsSyncing] = useState(false); // Add Syncing State
+  const [showExamGradesModal, setShowExamGradesModal] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Fetch class details
   const { data: classData, isLoading: classLoading } = useQuery(
@@ -49,7 +52,7 @@ const ClassDetail = () => {
   );
 
   // Fetch assignments for this class
-  const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery(
+  const { data: assignmentsData, isLoading: assignmentsLoading, refetch: refetchAssignments } = useQuery(
     ['assignments', id],
     () => assignmentsAPI.getByClass(id),
     { enabled: !!id }
@@ -296,7 +299,18 @@ const ClassDetail = () => {
 
           {/* Recent Assignments */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Assignments</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Recent Assignments</h2>
+              {isLecturer && (
+                <button
+                  onClick={() => setShowAssignmentModal(true)}
+                  className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Assignment
+                </button>
+              )}
+            </div>
             {assignmentsLoading ? (
               <LoadingSpinner size="sm" />
             ) : assignments.length === 0 ? (
@@ -334,6 +348,23 @@ const ClassDetail = () => {
               </div>
             )}
           </div>
+
+          {/* Assignment Modal */}
+          {showAssignmentModal && (
+            <CreateAssignmentModal
+              isOpen={showAssignmentModal}
+              onClose={() => setShowAssignmentModal(false)}
+              onSuccess={async () => {
+                await refetchAssignments();
+                toast.success('Assignment created successfully!');
+              }}
+              prefilledClass={{
+                id: classInfo.id,
+                name: classInfo.name,
+                department: classInfo.department
+              }}
+            />
+          )}
         </div>
 
         {/* Sidebar */}
