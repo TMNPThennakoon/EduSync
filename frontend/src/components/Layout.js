@@ -20,7 +20,6 @@ import { adminAPI } from '../services/api';
 import logo from '../logo.png';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import ChatWidget from './chat/ChatWidget';
 import { useQuery } from 'react-query';
 
 const Layout = () => {
