@@ -18,7 +18,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { adminAPI } from '../services/api';
 import logo from '../logo.png';
-import { io } from 'socket.io-client';
+// import { io } from 'socket.io-client'; // Disabled - Vercel doesn't support WebSockets
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
@@ -61,6 +61,7 @@ const Layout = () => {
     }
   }, [user]);
 
+  /* Socket.io DISABLED - Vercel serverless doesn't support WebSockets
   // Socket.io for real-time announcements
   React.useEffect(() => {
     if (!user) return;
@@ -141,6 +142,7 @@ const Layout = () => {
       socket.off('exam_grade_released');
     };
   }, [user]);
+  */ // End Socket.IO disabled block
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home, current: location.pathname === '/dashboard' },
@@ -440,7 +442,7 @@ const Layout = () => {
           </div>
         </main>
       </div>
-    </div>
+    </div >
   );
 };
 
