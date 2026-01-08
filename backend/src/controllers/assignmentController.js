@@ -217,17 +217,18 @@ const getAssignmentById = async (req, res) => {
 
 const createAssignment = async (req, res) => {
   try {
-    console.log('Create Assignment Body:', req.body); // Debug log
-    const { class_id, title, description, max_score, due_date, assignment_type, department, attachment_url, attachment_filename, attachment_size, quiz_data } = req.body;
+    console.log('Create Assignment Body:', req.body);
+    const { class_id, title, description, max_score, due_date, assignment_type, department } = req.body;
 
     // Validate required fields
     if (!class_id || !title || !max_score || !due_date || !assignment_type || !department) {
-      console.error('Missing fields:', { class_id, title, max_score, due_date, assignment_type, department }); // Debug missing fields
+      console.error('Missing fields:', { class_id, title, max_score, due_date, assignment_type, department });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // NOTE: Database has class_code column, but frontend sends class_id
     const result = await pool.query(`
-      INSERT INTO assignments (class_id, title, description, max_score, due_date, assignment_type, department, created_by)
+      INSERT INTO assignments (class_code, title, description, max_score, due_date, assignment_type, department, created_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `, [class_id, title, description, max_score, due_date, assignment_type, department, req.user.id]);
@@ -236,7 +237,6 @@ const createAssignment = async (req, res) => {
       assignmentId: result.rows[0].id,
       title,
       class_id,
-      hasAttachment: !!attachment_url
     });
 
     res.status(201).json({
@@ -244,7 +244,7 @@ const createAssignment = async (req, res) => {
       assignment: result.rows[0]
     });
   } catch (error) {
-    console.error('Create Assignment Error Detailed:', error); // Verbose log
+    console.error('Create Assignment Error Detailed:', error);
     logError(error, { action: 'create_assignment', userId: req.user?.id });
     res.status(500).json({ error: `Internal server error: ${error.message}` });
   }
