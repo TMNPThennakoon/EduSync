@@ -218,19 +218,19 @@ const getAssignmentById = async (req, res) => {
 const createAssignment = async (req, res) => {
   try {
     console.log('Create Assignment Body:', req.body); // Debug log
-    const { class_id, title, description, max_marks, due_date, assignment_type, department, attachment_url, attachment_filename, attachment_size, quiz_data } = req.body;
+    const { class_id, title, description, max_score, due_date, assignment_type, department, attachment_url, attachment_filename, attachment_size, quiz_data } = req.body;
 
     // Validate required fields
-    if (!class_id || !title || !max_marks || !due_date || !assignment_type || !department) {
-      console.error('Missing fields:', { class_id, title, max_marks, due_date, assignment_type, department }); // Debug missing fields
+    if (!class_id || !title || !max_score || !due_date || !assignment_type || !department) {
+      console.error('Missing fields:', { class_id, title, max_score, due_date, assignment_type, department }); // Debug missing fields
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const result = await pool.query(`
-      INSERT INTO assignments (class_code, title, description, max_marks, due_date, assignment_type, department, created_by, attachment_url, attachment_filename, attachment_size, quiz_data)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      INSERT INTO assignments (class_id, title, description, max_score, due_date, assignment_type, department, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
-    `, [class_id, title, description, max_marks, due_date, assignment_type, department, req.user.id, attachment_url, attachment_filename, attachment_size, quiz_data ? JSON.stringify(quiz_data) : null]);
+    `, [class_id, title, description, max_score, due_date, assignment_type, department, req.user.id]);
 
     logUserAction('assignment_created', req.user.id, {
       assignmentId: result.rows[0].id,
