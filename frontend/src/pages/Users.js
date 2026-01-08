@@ -17,6 +17,7 @@ import EditUserModal from '../components/EditUserModal';
 import UserDetailsModal from '../components/UserDetailsModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import toast from 'react-hot-toast';
+import { useModal } from '../components/AnimatedModal';
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +32,9 @@ const Users = () => {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState(null);
   const [previewUserName, setPreviewUserName] = useState('');
+
+  // Beautiful animated modal
+  const { showModal, ModalComponent } = useModal();
 
   const { data, isLoading, refetch } = useQuery(
     ['users', { search: searchTerm, role: selectedRole, department: selectedDepartment, year: selectedYear }],
@@ -106,20 +110,28 @@ const Users = () => {
   };
 
   const handleDelete = async (userId, userName) => {
-    if (window.confirm(`Are you sure you want to delete "${userName}"?`)) {
-      try {
-        await usersAPI.delete(userId);
-        toast.success('User deleted successfully');
-        refetch();
-      } catch (error) {
-        const errorMessage = error.response?.data?.error || 'Failed to delete user';
-        toast.error(errorMessage);
+    showModal({
+      title: 'Delete User?',
+      message: `Are you sure you want to delete "${userName}"? This will permanently remove the user and all their associated data. This action cannot be undone.`,
+      type: 'error',
+      confirmText: 'Delete User',
+      cancelText: 'Cancel',
+      confirmColor: 'red',
+      onConfirm: async () => {
+        try {
+          await usersAPI.delete(userId);
+          toast.success('User deleted successfully');
+          refetch();
+        } catch (error) {
+          const errorMessage = error.response?.data?.error || 'Failed to delete user';
+          toast.error(errorMessage);
 
-        if (error.response?.status === 401) {
-          console.error('Authorization error during user deletion');
+          if (error.response?.status === 401) {
+            console.error('Authorization error during user deletion');
+          }
         }
       }
-    }
+    });
   };
 
   const handleAddSuccess = () => {
@@ -382,6 +394,9 @@ const Users = () => {
         studentName={previewUserName}
         altText={`${previewUserName} profile image`}
       />
+
+      {/* Animated Modal */}
+      {ModalComponent}
     </div>
   );
 };

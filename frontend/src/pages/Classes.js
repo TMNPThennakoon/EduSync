@@ -21,6 +21,7 @@ import { classesAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import CreateClassModal from '../components/CreateClassModal';
 import toast from 'react-hot-toast';
+import { useModal } from '../components/AnimatedModal';
 
 const Classes = () => {
   const { isLecturer, isAdmin, user } = useAuth();
@@ -28,6 +29,9 @@ const Classes = () => {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Beautiful animated modal
+  const { showModal, ModalComponent } = useModal();
 
   const { data, isLoading, refetch } = useQuery(
     ['classes', { search: searchTerm, academic_year: selectedYear, semester: selectedSemester, userId: user?.id, lecturer_id: (isLecturer && !isAdmin) ? user?.id : undefined }],
@@ -104,15 +108,23 @@ const Classes = () => {
   }, {});
 
   const handleDelete = async (classId, className) => {
-    if (window.confirm(`Are you sure you want to delete "${className}"?`)) {
-      try {
-        await classesAPI.delete(classId);
-        toast.success('Class deleted successfully');
-        refetch();
-      } catch (error) {
-        toast.error('Failed to delete class');
+    showModal({
+      title: 'Delete Class?',
+      message: `Are you sure you want to delete "${className}"? This will remove all associated data including assignments, attendance records, and grades. This action cannot be undone.`,
+      type: 'error',
+      confirmText: 'Delete Class',
+      cancelText: 'Cancel',
+      confirmColor: 'red',
+      onConfirm: async () => {
+        try {
+          await classesAPI.delete(classId);
+          toast.success('Class deleted successfully');
+          refetch();
+        } catch (error) {
+          toast.error('Failed to delete class');
+        }
       }
-    }
+    });
   };
 
   // Format academic year and semester for display
@@ -398,6 +410,9 @@ const Classes = () => {
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => refetch()}
       />
+
+      {/* Animated Modal */}
+      {ModalComponent}
     </div>
   );
 };
