@@ -4,6 +4,7 @@ import QrScanner from 'qr-scanner';
 import { attendanceAPI, attendanceSessionAPI, classesAPI } from '../services/api';
 import { playSuccessBeep, playErrorAlert } from '../utils/audio';
 import toast from 'react-hot-toast';
+import { useModal } from './AnimatedModal';
 
 const AttendanceScanner = ({ isOpen, onClose, activeClass }) => {
   const [error, setError] = useState(null);
@@ -17,6 +18,9 @@ const AttendanceScanner = ({ isOpen, onClose, activeClass }) => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [editNote, setEditNote] = useState('');
   const [editStatus, setEditStatus] = useState('present');
+
+  // Beautiful animated modal
+  const { showModal, ModalComponent } = useModal();
 
   const videoRef = useRef(null);
   const qrScannerRef = useRef(null);
@@ -100,24 +104,31 @@ const AttendanceScanner = ({ isOpen, onClose, activeClass }) => {
   const endSession = async () => {
     if (!currentSession) return;
 
-    const confirmed = window.confirm('Are you sure you want to complete this attendance session?');
-    if (!confirmed) return;
+    showModal({
+      title: 'Complete Attendance Session?',
+      message: 'Are you sure you want to complete this attendance session? This will finalize all attendance records.',
+      type: 'warning',
+      confirmText: 'Complete Session',
+      cancelText: 'Continue Scanning',
+      confirmColor: 'red',
+      onConfirm: async () => {
+        try {
+          setIsEndingSession(true);
+          const response = await attendanceSessionAPI.end({ session_id: currentSession.id });
 
-    try {
-      setIsEndingSession(true);
-      const response = await attendanceSessionAPI.end({ session_id: currentSession.id });
-
-      if (response.data.success) {
-        toast.success('✅ Attendance session completed successfully!');
-        setCurrentSession(null);
-        setScannedList([]);
-        onClose();
+          if (response.data.success) {
+            toast.success('✅ Attendance session completed successfully!');
+            setCurrentSession(null);
+            setScannedList([]);
+            onClose();
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.error || 'Failed to end session');
+        } finally {
+          setIsEndingSession(false);
+        }
       }
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to end session');
-    } finally {
-      setIsEndingSession(false);
-    }
+    });
   };
 
   const updateSessionStats = async () => {
@@ -691,6 +702,9 @@ const AttendanceScanner = ({ isOpen, onClose, activeClass }) => {
           )}
         </div>
       </div>
+
+      {/* Animated Modal */}
+      {ModalComponent}
 
       {/* Add custom animations */}
       <style>{`
