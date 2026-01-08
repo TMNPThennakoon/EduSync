@@ -27,20 +27,20 @@ const getAllAssignments = async (req, res) => {
     }
 
     let query = `
-      SELECT a.*, c.class_name, c.class_id as subject, c.department,
+      SELECT a.*, c.name as class_name, c.id as class_id, c.subject, c.department,
              u.first_name as lecturer_first_name, u.last_name as lecturer_last_name, u.email as lecturer_email, u.department as lecturer_department,
              COUNT(DISTINCT g.id) as graded_count,
-             COUNT(DISTINCT e.student_index) as total_students,
+             COUNT(DISTINCT e.student_id) as total_students,
              COUNT(DISTINCT s.id) as submission_count,
-             gr.marks_obtained as student_grade,
+             gr.score as student_grade,
              gr.feedback as student_feedback
       FROM assignments a
-      JOIN classes c ON a.class_id = c.class_id
+      JOIN classes c ON a.class_code = c.id
       LEFT JOIN users u ON a.created_by = u.id
       LEFT JOIN grades g ON a.id = g.assignment_id
-      LEFT JOIN enrollments e ON a.class_id = e.class_id
+      LEFT JOIN enrollments e ON c.id = e.class_id
       LEFT JOIN assignment_submissions s ON a.id = s.assignment_id
-      LEFT JOIN grades gr ON a.id = gr.assignment_id AND gr.student_index = (SELECT index_no FROM users WHERE id = $1)
+      LEFT JOIN grades gr ON a.id = gr.assignment_id AND gr.student_id = $1
     `;
 
 
@@ -62,7 +62,7 @@ const getAllAssignments = async (req, res) => {
     }
 
     if (class_id) {
-      conditions.push(`a.class_id = $${++paramCount}`);
+      conditions.push(`a.class_code = $${++paramCount}`);
       params.push(class_id);
     }
 
@@ -75,7 +75,7 @@ const getAllAssignments = async (req, res) => {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ` GROUP BY a.id, c.class_name, c.class_id, c.department, u.first_name, u.last_name, u.email, u.department, gr.marks_obtained, gr.feedback ORDER BY a.due_date DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+    query += ` GROUP BY a.id, c.name, c.id, c.subject, c.department, u.first_name, u.last_name, u.email, u.department, gr.score, gr.feedback ORDER BY a.due_date DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
     params.push(parseInt(limit), parseInt(offset));
 
     console.log('GET Assignments Query Values:', params); // Debug log
@@ -85,7 +85,7 @@ const getAllAssignments = async (req, res) => {
     // Get total count
     let countQuery = `
       SELECT COUNT(DISTINCT a.id) FROM assignments a
-      JOIN classes c ON a.class_id = c.class_id
+      JOIN classes c ON a.class_code = c.id
     `;
     let countParams = [];
     let countParamCount = 0;
@@ -104,7 +104,7 @@ const getAllAssignments = async (req, res) => {
     }
 
     if (class_id) {
-      countConditions.push(`a.class_id = $${++countParamCount}`);
+      countConditions.push(`a.class_code = $${++countParamCount}`);
       countParams.push(class_id);
     }
 
