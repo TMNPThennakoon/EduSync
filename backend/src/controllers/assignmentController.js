@@ -27,7 +27,7 @@ const getAllAssignments = async (req, res) => {
     }
 
     let query = `
-      SELECT a.*, c.class_name, c.class_code as subject, c.department,
+      SELECT a.*, c.class_name, c.class_id as subject, c.department,
              u.first_name as lecturer_first_name, u.last_name as lecturer_last_name, u.email as lecturer_email, u.department as lecturer_department,
              COUNT(DISTINCT g.id) as graded_count,
              COUNT(DISTINCT e.student_index) as total_students,
@@ -35,10 +35,10 @@ const getAllAssignments = async (req, res) => {
              gr.marks_obtained as student_grade,
              gr.feedback as student_feedback
       FROM assignments a
-      JOIN classes c ON a.class_code = c.class_code
+      JOIN classes c ON a.class_id = c.class_id
       LEFT JOIN users u ON a.created_by = u.id
       LEFT JOIN grades g ON a.id = g.assignment_id
-      LEFT JOIN enrollments e ON a.class_code = e.class_code
+      LEFT JOIN enrollments e ON a.class_id = e.class_id
       LEFT JOIN assignment_submissions s ON a.id = s.assignment_id
       LEFT JOIN grades gr ON a.id = gr.assignment_id AND gr.student_index = (SELECT index_no FROM users WHERE id = $1)
     `;
@@ -62,7 +62,7 @@ const getAllAssignments = async (req, res) => {
     }
 
     if (class_id) {
-      conditions.push(`a.class_code = $${++paramCount}`);
+      conditions.push(`a.class_id = $${++paramCount}`);
       params.push(class_id);
     }
 
@@ -75,7 +75,7 @@ const getAllAssignments = async (req, res) => {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ` GROUP BY a.id, c.class_name, c.class_code, c.department, u.first_name, u.last_name, u.email, u.department, gr.marks_obtained, gr.feedback ORDER BY a.due_date DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+    query += ` GROUP BY a.id, c.class_name, c.class_id, c.department, u.first_name, u.last_name, u.email, u.department, gr.marks_obtained, gr.feedback ORDER BY a.due_date DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
     params.push(parseInt(limit), parseInt(offset));
 
     console.log('GET Assignments Query Values:', params); // Debug log
@@ -85,7 +85,7 @@ const getAllAssignments = async (req, res) => {
     // Get total count
     let countQuery = `
       SELECT COUNT(DISTINCT a.id) FROM assignments a
-      JOIN classes c ON a.class_code = c.class_code
+      JOIN classes c ON a.class_id = c.class_id
     `;
     let countParams = [];
     let countParamCount = 0;
@@ -104,7 +104,7 @@ const getAllAssignments = async (req, res) => {
     }
 
     if (class_id) {
-      countConditions.push(`a.class_code = $${++countParamCount}`);
+      countConditions.push(`a.class_id = $${++countParamCount}`);
       countParams.push(class_id);
     }
 
@@ -143,9 +143,9 @@ const getAssignmentById = async (req, res) => {
     const userRole = req.user.role;
 
     const assignmentResult = await pool.query(`
-      SELECT a.*, c.class_name, c.class_name as class_name_display, c.class_code as subject
+      SELECT a.*, c.class_name, c.class_name as class_name_display, c.class_id as subject
       FROM assignments a
-      JOIN classes c ON a.class_code = c.class_code
+      JOIN classes c ON a.class_id = c.class_id
       WHERE a.id = $1
     `, [id]);
 
@@ -253,14 +253,14 @@ const createAssignment = async (req, res) => {
 const updateAssignment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, max_marks, due_date, assignment_type } = req.body;
+    const { title, description, max_score, due_date, assignment_type } = req.body;
 
     const result = await pool.query(`
       UPDATE assignments 
-      SET title = $1, description = $2, max_marks = $3, due_date = $4, assignment_type = $5, updated_at = CURRENT_TIMESTAMP
+      SET title = $1, description = $2, max_score = $3, due_date = $4, assignment_type = $5, updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
       RETURNING *
-    `, [title, description, max_marks, due_date, assignment_type, id]);
+    `, [title, description, max_score, due_date, assignment_type, id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Assignment not found' });
@@ -311,7 +311,7 @@ const getAssignmentGrades = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(`
-      SELECT g.*, u.first_name, u.last_name, u.email, a.title as assignment_title, a.max_marks
+      SELECT g.*, u.first_name, u.last_name, u.email, a.title as assignment_title, a.max_score
       FROM grades g
       JOIN users u ON g.student_index = u.index_no
       JOIN assignments a ON g.assignment_id = a.id
@@ -427,7 +427,7 @@ const getAssignmentSubmissions = async (req, res) => {
 
     const result = await pool.query(`
       SELECT s.*, u.first_name, u.last_name, u.email, u.index_no as student_index,
-             a.title as assignment_title, a.max_marks, a.due_date,
+             a.title as assignment_title, a.max_score, a.due_date,
              g.marks_obtained as grade, g.feedback
       FROM assignment_submissions s
       JOIN users u ON s.student_id = u.id
@@ -449,12 +449,12 @@ const getAssignmentSubmissions = async (req, res) => {
 const updateAssignmentTotal = async (studentIndex, studentId, classCode) => {
   try {
     // 1. Calculate total marks obtained for this student in this class
-    // We join assignments to filter by class_code
+    // We join assignments to filter by class_id
     const totalResult = await pool.query(`
       SELECT SUM(g.marks_obtained) as total
       FROM grades g
       JOIN assignments a ON g.assignment_id = a.id
-      WHERE g.student_index = $1 AND a.class_code = $2
+      WHERE g.student_index = $1 AND a.class_id = $2
     `, [studentIndex, classCode]);
 
     const totalMarks = totalResult.rows[0]?.total || 0;
@@ -463,9 +463,9 @@ const updateAssignmentTotal = async (studentIndex, studentId, classCode) => {
 
     // 2. Update exam_grades table
     await pool.query(`
-      INSERT INTO exam_grades (class_code, student_id, student_index, total_assignment_marks)
+      INSERT INTO exam_grades (class_id, student_id, student_index, total_assignment_marks)
       VALUES ($1, $2, $3, $4)
-      ON CONFLICT (class_code, student_id)
+      ON CONFLICT (class_id, student_id)
       DO UPDATE SET 
         total_assignment_marks = $4,
         student_index = $3, -- Ensure index is set
@@ -531,9 +531,9 @@ const gradeSubmission = async (req, res) => {
     });
 
     // [New Feature] Auto-update total assignment marks in exam_grades
-    // We need class_code for this.
-    const assignmentDetails = await pool.query('SELECT class_code FROM assignments WHERE id = $1', [submission.assignment_id]);
-    const classCode = assignmentDetails.rows[0]?.class_code;
+    // We need class_id for this.
+    const assignmentDetails = await pool.query('SELECT class_id FROM assignments WHERE id = $1', [submission.assignment_id]);
+    const classCode = assignmentDetails.rows[0]?.class_id;
 
     if (classCode && student_index) {
       await updateAssignmentTotal(student_index, submission.student_id, classCode);
@@ -567,12 +567,12 @@ const getStudentSubmissions = async (req, res) => {
       SELECT s.id, s.assignment_id, s.student_id, s.submission_text, s.submission_file, 
              s.submission_filename, s.submission_file_size, s.submitted_at, s.status as submission_status, 
              s.can_edit_until, s.last_edited_at, s.graded_at,
-             a.title as assignment_title, a.max_marks, a.due_date, a.assignment_type, a.description,
-             c.class_name, c.class_code as subject, c.department,
+             a.title as assignment_title, a.max_score, a.due_date, a.assignment_type, a.description,
+             c.class_name, c.class_id as subject, c.department,
              g.marks_obtained as grade, g.feedback
       FROM assignment_submissions s
       INNER JOIN assignments a ON s.assignment_id = a.id
-      LEFT JOIN classes c ON a.class_code = c.class_code
+      LEFT JOIN classes c ON a.class_id = c.class_id
       LEFT JOIN grades g ON s.assignment_id = g.assignment_id AND g.student_index = $2
       WHERE s.student_id = $1
     `;
