@@ -200,8 +200,10 @@ const StudentDashboard = () => {
     return <LoadingSpinner size="lg" className="py-12" />;
   }
 
-  // Handle both nested and direct response structures
-  const enrolledClasses = classesData?.data?.classes || classesData?.data || classesData?.classes || [];
+  // Handle both nested and direct response structures - ensure it's always an array
+  const classesArray = classesData?.data?.classes || classesData?.classes || [];
+  const enrolledClasses = Array.isArray(classesArray) ? classesArray :
+    (Array.isArray(classesData?.data) ? classesData.data : []);
   const totalAssignments = assignmentsData?.data?.assignments?.length || 0;
   const pendingAssignments = assignmentsData?.data?.assignments?.filter(a =>
     new Date(a.due_date) > new Date() && !a.submitted
