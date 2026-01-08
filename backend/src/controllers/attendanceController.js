@@ -505,6 +505,28 @@ const markSmartAttendance = async (req, res) => {
 
     // Get or create active session
     let activeSessionId = sessionId;
+
+    // Validate provided sessionId exists if given
+    if (sessionId) {
+      const validationResult = await pool.query(
+        'SELECT id, is_active FROM attendance_sessions WHERE id = $1 AND class_code = $2',
+        [sessionId, classCode]
+      );
+
+      if (validationResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Provided session ID not found or does not match class'
+        });
+      }
+
+      if (!validationResult.rows[0].is_active) {
+        // Session expired, create new one
+        activeSessionId = null;
+      }
+    }
+
+    // Find or create active session if none provided or previous expired
     if (!activeSessionId) {
       // Try to find active session
       const sessionResult = await pool.query(
@@ -514,15 +536,25 @@ const markSmartAttendance = async (req, res) => {
 
       if (sessionResult.rows.length === 0) {
         // Create new session if none exists
-        const newSessionResult = await pool.query(
-          `INSERT INTO attendance_sessions (class_code, lecturer_id, start_time, is_active)
-           VALUES ($1, $2, CURRENT_TIMESTAMP, TRUE)
-           RETURNING id`,
-          [classCode, recorded_by]
-        );
-        activeSessionId = newSessionResult.rows[0].id;
+        try {
+          const newSessionResult = await pool.query(
+            `INSERT INTO attendance_sessions (class_code, lecturer_id, start_time, is_active)
+             VALUES ($1, $2, CURRENT_TIMESTAMP, TRUE)
+             RETURNING id`,
+            [classCode, recorded_by]
+          );
+          activeSessionId = newSessionResult.rows[0].id;
+          console.log(`[markSmartAttendance] Created new session: ${activeSessionId}`);
+        } catch (sessionError) {
+          console.error('[markSmartAttendance] Failed to create session:', sessionError);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to create attendance session'
+          });
+        }
       } else {
         activeSessionId = sessionResult.rows[0].id;
+        console.log(`[markSmartAttendance] Using existing session: ${activeSessionId}`);
       }
     }
 
